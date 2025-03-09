@@ -1,14 +1,11 @@
 {
-    "version": 2,
-    "builds": [
-      {
-        "src": "app.py",
-        "use": "@vercel/python"
-      }
-    ],
-    "installCommand": "pip install --no-cache-dir -r requirements.txt",
-    "config": {
-      "maxLambdaSize": "250mb"
-    },
-    "includeFiles": ["requirements.txt"]
-  }
+  "version": 2,
+  "builds": [
+    {
+      "src": "app.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "installCommand": "pip install --no-cache-dir -r requirements.txt",
+  "includeFiles": ["requirements.txt"]
+}
