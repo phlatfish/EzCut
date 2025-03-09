@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LD Card Cutter</title>
+    <style>
+        body {
+            font-family: Calibri, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .slider-container {
+            margin: 20px 0;
+        }
+        
+        .slider-container input[type="range"] {
+            width: 100%;
+            height: 25px;
+            -webkit-appearance: none;
+            background: #f0f0f0;
+            border-radius: 5px;
+            outline: none;
+        }
+        
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #007bff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .slider-container span {
+            display: block;
+            text-align: right;
+            margin-top: 5px;
+        }
+        
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        
+        .tagline {
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .form-group textarea {
+            height: 150px;
+            resize: vertical;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0,123,255,.25);
+        }
+        
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 11pt;
+        }
+        
+        .beta-label {
+            color: #666;
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>LD Card Cutter</h1>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-group">
+            <label for="source_type">Source Type</label>
+            <select id="source_type" name="source_type" class="form-control">
+                <option value="text">Custom Text</option>
+                <option value="url">URL (beta)</option>
+            </select>
+        </div>
+
+        <div id="url_input" class="form-group" style="display: none;">
+            <label for="url">Article URL</label>
+            {{ form.url(class_='form-control') }}
+        </div>
+
+        <div id="text_input" class="form-group">
+            <label for="custom_text">Custom Text</label>
+            {{ form.custom_text(class_='form-control') }}
+        </div>
+
+        <div class="form-group">
+            <label for="tagline">Tagline</label>
+            {{ form.tagline(class_='form-control') }}
+        </div>
+
+        <div class="form-group slider-container">
+            <label for="threshold">Relevance Threshold</label>
+            <input type="range" id="threshold" name="threshold" 
+                   min="0.0" max="1.0" step="0.1" value="0.5">
+            <span id="threshold-value">0.4</span>
+        </div>
+
+        {{ form.submit(class_='btn btn-primary') }}
+    </form>
+
+    {% if results %}
+    <div class="results">
+        <div class="tagline">{{ form.tagline.data }}</div>
+        <pre style="font-family: Calibri, sans-serif; font-size: 11pt;">
+            {{ results.text|safe }}
+        </pre>
+    </div>
+    {% endif %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const slider = document.querySelector('input[type="range"]');
+            const valueDisplay = document.querySelector('#threshold-value');
+            const sourceTypeSelect = document.getElementById('source_type');
+            
+            slider.addEventListener('input', function() {
+                valueDisplay.textContent = this.value;
+            });
+            
+            sourceTypeSelect.addEventListener('change', function() {
+                const urlInput = document.getElementById('url_input');
+                const textInput = document.getElementById('text_input');
+                
+                if (this.value === 'url') {
+                    urlInput.style.display = 'block';
+                    textInput.style.display = 'none';
+                    urlInput.querySelector('input').focus();
+                } else {
+                    urlInput.style.display = 'none';
+                    textInput.style.display = 'block';
+                    textInput.querySelector('textarea').focus();
+                }
+            });
+            
+            const initializeInputs = function() {
+                const currentValue = sourceTypeSelect.value;
+                const urlInput = document.getElementById('url_input');
+                const textInput = document.getElementById('text_input');
+                
+                if (currentValue === 'url') {
+                    urlInput.style.display = 'block';
+                    textInput.style.display = 'none';
+                    urlInput.querySelector('input').focus();
+                } else {
+                    urlInput.style.display = 'none';
+                    textInput.style.display = 'block';
+                    textInput.querySelector('textarea').focus();
+                }
+            };
+            
+            initializeInputs();
+        });
+    </script>
+</body>
+</html>
