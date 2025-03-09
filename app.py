@@ -4,23 +4,30 @@ from wtforms import StringField, DecimalField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, NumberRange, Optional
 import requests
 from bs4 import BeautifulSoup
-from nltk.tokenize import sent_tokenize
+import nltk
 import torch
 from sentence_transformers import SentenceTransformer, util
 import numpy as np
 from datetime import datetime
 
+# Download only required NLTK data
+nltk.download('punkt')
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 
-# Initialize model lazily
-semantic_model = None
+# Use an even smaller model
+MODEL_NAME = 'paraphrase-multilingual-mpnet-base-v2'
 
+# Initialize model with quantization
+semantic_model = None
 def get_semantic_model():
     global semantic_model
     if semantic_model is None:
-        # Use a smaller model to reduce size
-        semantic_model = SentenceTransformer('all-MiniLM-L6-v2')
+        # Use quantization to reduce model size
+        semantic_model = SentenceTransformer(MODEL_NAME, 
+                                          cache_folder='model_cache',
+                                          quantization= SentenceTransformer.QUANTIZATION_8BIT)
     return semantic_model
 
 class DebateCardForm(FlaskForm):
