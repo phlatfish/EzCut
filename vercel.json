@@ -7,8 +7,5 @@
       }
     ],
     "installCommand": "pip install --no-cache-dir -r requirements.txt",
-    "config": {
-      "maxLambdaSize": "250mb"
-    },
     "includeFiles": ["requirements.txt"]
   }
