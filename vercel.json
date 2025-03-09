@@ -6,6 +6,5 @@
       "use": "@vercel/python"
     }
   ],
-  "installCommand": "pip install --no-cache-dir -r requirements.txt",
-  "runtime": "python@3.10"
+  "installCommand": "pip install --no-cache-dir -r requirements.txt"
 }
