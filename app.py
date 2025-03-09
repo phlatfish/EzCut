@@ -4,31 +4,13 @@ from wtforms import StringField, DecimalField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, NumberRange, Optional
 import requests
 from bs4 import BeautifulSoup
-import nltk
-import torch
-from sentence_transformers import SentenceTransformer, util
+from nltk.tokenize import sent_tokenize
+from sentence_transformers import SentenceTransformer
 import numpy as np
 from datetime import datetime
 
-# Download only required NLTK data
-nltk.download('punkt')
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
-
-# Use an even smaller model
-MODEL_NAME = 'paraphrase-multilingual-mpnet-base-v2'
-
-# Initialize model with quantization
-semantic_model = None
-def get_semantic_model():
-    global semantic_model
-    if semantic_model is None:
-        # Use quantization to reduce model size
-        semantic_model = SentenceTransformer(MODEL_NAME, 
-                                          cache_folder='model_cache',
-                                          quantization= SentenceTransformer.QUANTIZATION_8BIT)
-    return semantic_model
 
 class DebateCardForm(FlaskForm):
     source_type = StringField('Source Type', default='text')
@@ -55,37 +37,21 @@ def extract_content(url: str) -> dict:
     }
 
 def process_text(paragraphs: List[str], tagline: str, threshold: float) -> List[Dict]:
-    semantic_model = get_semantic_model()
-    
-    # Process in batches to reduce memory usage
-    batch_size = 32
+    semantic_model = SentenceTransformer('all-mpnet-base-v2')
+    tagline_embedding = semantic_model.encode([tagline])
     processed_chunks = []
-    
-    for i in range(0, len(paragraphs), batch_size):
-        batch_paragraphs = paragraphs[i:i + batch_size]
-        sentences = []
-        for paragraph in batch_paragraphs:
-            sentences.extend(sent_tokenize(paragraph))
-        
-        # Process sentences in batches
-        for j in range(0, len(sentences), batch_size):
-            sentence_batch = sentences[j:j + batch_size]
-            
-            # Encode tagline once per batch
-            tagline_embedding = semantic_model.encode([tagline])
-            
-            # Process sentences
-            sentence_embeddings = semantic_model.encode(sentence_batch)
-            scores = util.cos_sim(
-                torch.tensor(tagline_embedding),
-                torch.tensor(sentence_embeddings)
-            ).numpy()[0]
-            
-            processed_chunks.extend([
-                {'text': sentence, 'score': float(score)}
-                for sentence, score in zip(sentence_batch, scores)
-            ])
-    
+    for paragraph in paragraphs:
+        sentences = sent_tokenize(paragraph)
+        for sentence in sentences:
+            sentence_embedding = semantic_model.encode([sentence])
+            semantic_score = np.dot(tagline_embedding[0], sentence_embedding[0]) / (
+                np.linalg.norm(tagline_embedding[0]) * 
+                np.linalg.norm(sentence_embedding[0])
+            )
+            processed_chunks.append({
+                'text': sentence,
+                'score': float(semantic_score)
+            })
     return processed_chunks
 
 @app.route('/', methods=['GET', 'POST'])
@@ -102,14 +68,12 @@ def index():
                     'source_url': 'Custom Text',
                     'accessed_date': datetime.now().isoformat()
                 }
-            
             processed_paragraphs = []
             for paragraph in content_data['paragraphs']:
                 sentences = sent_tokenize(paragraph)
                 processed_sentences = []
-                semantic_model = get_semantic_model()
+                semantic_model = SentenceTransformer('all-mpnet-base-v2')
                 tagline_embedding = semantic_model.encode([form.tagline.data])
-                
                 for sentence in sentences:
                     sentence_embedding = semantic_model.encode([sentence])
                     semantic_score = np.dot(tagline_embedding[0], sentence_embedding[0]) / (
@@ -120,9 +84,7 @@ def index():
                         'text': sentence,
                         'score': float(semantic_score)
                     })
-                
                 processed_paragraphs.append(processed_sentences)
-            
             html_output = []
             for paragraph in processed_paragraphs:
                 paragraph_html = []
@@ -138,7 +100,6 @@ def index():
                             f'<span style="{base_style}">{sentence["text"]}</span>'
                         )
                 html_output.append(' '.join(paragraph_html))
-            
             results = {
                 'text': '<br>'.join(html_output),
                 'source_url': content_data['source_url'],
@@ -146,8 +107,7 @@ def index():
             }
         except Exception as e:
             return render_template('error.html', error=str(e))
-    
     return render_template('index.html', form=form, results=results)
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
