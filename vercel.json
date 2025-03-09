@@ -6,6 +6,5 @@
       "use": "@vercel/python"
     }
   ],
-  "installCommand": "pip install --no-cache-dir -r requirements.txt",
-  "includeFiles": ["requirements.txt"]
+  "installCommand": "pip install --no-cache-dir -r requirements.txt"
 }
